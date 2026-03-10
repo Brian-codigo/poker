@@ -19,7 +19,7 @@ If you're unfamiliar with Texas Hold'em check out these resources:
 
 ## Poker Terminology
 ### Button
-The **button** refers to the player who is *in position*, meaning thy act **last after the flop**, which is an advantage.
+The **button** refers to the player who is *in position*, meaning they act **last after the flop**, which is an advantage.
 
 ### Blinds
 Blinds are forced bets that ensure every hand has chips in the pot.
@@ -35,14 +35,12 @@ Since the chips are unitless, it's hard to value them, it is better to think of 
 - A match consists of up to **10,000 hands**. If a player's chip count reaches 0, they lose immediately.
 
 ### Hand Flow
-Each hand proceeds through the standard Texas Hold'em streets:
+Each hand proceeds through the standard Texas Hold'em streets (game phases):
 1. Pre-Flop: players receive 2 cards
 2. Flop: 3 community cards revealed
 3. Turn: 1 community card revealed
 4. River: final community card revealed
-5. Showdown: best 5-card [poker hand](https://www.poker.org/poker-hands-ranking-chart/) wins
-
-Showdown – best 5-card hand wins
+5. Showdown: best 5-card [poker hand](https://www.poker.org/poker-hands-ranking-chart/) (out of your 2 cards + the 5 community cards) wins
 
 ## Legal Moves
 Your bot must return any of the following moves **only if it appears in the `valid_moves` list**:
@@ -177,6 +175,8 @@ By default, it runs **1,000** matches and reports the best bot's win rate.
 ## Submission
 - Submit your completed `main.py` file into the #hackathon-submissions channel in the AUCS discord.
 - Ensure to give a unique name to your bot by changing the `name` variable in `MyPlayer`.
+- Your bot should calculate each move in less than 1ms (millisecond).
+- If your bot crashes at any point it will automatically lose.
 
 Do not use any external APIs, do not obfuscate your code, do not write to any files.
 You can use standard Python libraries such as `itertools` if it helps with your solution, but do not use any external libraries (ones you need to install with `pip`).
