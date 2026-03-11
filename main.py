@@ -10,93 +10,14 @@ import random
 # random.seed(6767)
 
 # How many heads up matches you want to simulate
-MATCHES = 10000
+MATCHES = 20000
 # For development I recommend not processing in parallel as it can make it much harder to find errors
 PARALLEL = True
 
-class ClonePlayer(Player):
-    name = 'Metal Sonic'
-    image_path = 'images/your_image.png'
-
-    # preflop_strength
-    def preflop_strength(self) -> float:
-        ranks = '23456789TJQKA'
-        r1, r2 = self.cards[0][0], self.cards[1][0]
-        s1, s2 = self.cards[0][1], self.cards[1][1]
-        v1 = ranks.index(r1)
-        v2 = ranks.index(r2)
-        is_pair = r1 == r2
-        is_suited = s1 == s2
-        high = max(v1, v2)
-        low = min(v1, v2)
-        gap = high - low
-        score = (high + low) / 24.0
-        if is_pair:
-            score += 0.3 + (high / 12.0) * 0.2
-        if is_suited:
-            score += 0.06
-        if gap <= 2 and not is_pair:
-            score += 0.05
-        return min(score, 1.0)
-
-    #  get_equity 
-    def get_equity(self, community_cards: list[str], samples: int = 500) -> float:
-        known = set(self.cards + community_cards)
-        deck = [r + s for r in '23456789TJQKA' for s in 'dhsc' if r + s not in known]
-        wins = 0
-        my_rank = evaluate_cards(*community_cards, *self.cards)
-        for _ in range(samples):
-            opp_cards = random.sample(deck, 2)
-            opp_rank = evaluate_cards(*community_cards, *opp_cards)
-            if my_rank <= opp_rank:
-                wins += 1
-        return wins / samples
-
-    #get_hand_type
-    def get_hand_type(self, community_cards: list[str]) -> HandRank:
-        if not community_cards:
-            return HandRank.ONE_PAIR if self.cards[0][0] == self.cards[1][0] else HandRank.HIGH_CARD
-        rank = evaluate_cards(*community_cards, *self.cards)
-        for hand_type in HandRank:
-            if rank <= hand_type.value:
-                return hand_type
-        raise IndexError(f'Hand Rank Out Of Range: {rank}')
-
-    # PUT move logic
-    def move(self, community_cards, valid_moves, round_history, min_bet, max_bet):
-        is_preflop = len(community_cards) == 0
-
-        if is_preflop:
-            strength = self.preflop_strength()
-        else:
-            strength = self.get_equity(community_cards)
-
-        if strength > 0.7:
-            if Move.RAISE in valid_moves:
-                return (Move.RAISE, min(max_bet, min_bet * 3))
-            if Move.BET in valid_moves:
-                return (Move.BET, min(max_bet, 300))
-            if Move.CALL in valid_moves:
-                return Move.CALL
-            return Move.ALL_IN
-
-        elif strength > 0.45:
-            if Move.CHECK in valid_moves:
-                return Move.CHECK
-            if Move.CALL in valid_moves:
-                call_amount = round_history[-1][1] - self.pot_commitment
-                if call_amount < self.chips * 0.25:
-                    return Move.CALL
-            return Move.FOLD
-
-        else:
-            if Move.CHECK in valid_moves:
-                return Move.CHECK
-            return Move.FOLD
 
 class MyPlayer(Player):
     name = 'Long Story Short, Its over'
-    image_path = 'images/your_image.png' # Optional
+    image_path = '/Users/briannn/Desktop/poker/poker/LongStoryShort.png' # Optional
 
     def __init__(self):
         super().__init__()
@@ -227,16 +148,11 @@ class MyPlayer(Player):
         # STRONG
         elif strength > 0.75:
             if facing_big_bet:
-                if tendency == 'tight' and strength < 0.80:
-                    if Move.CHECK in valid_moves:
-                        return Move.CHECK
-                    return Move.FOLD
                 if Move.RAISE in valid_moves:
                     return (Move.RAISE, min(max_bet, min_bet * 3))
                 if Move.CALL in valid_moves:
                     return Move.CALL
                 return Move.ALL_IN
-            # Value bet slightly bigger than clone's flat 300
             bet_size = min(max_bet, int(self.chips * 0.24))
             if Move.RAISE in valid_moves:
                 return (Move.RAISE, min(max_bet, min_bet * 3))
@@ -247,7 +163,7 @@ class MyPlayer(Player):
             return Move.ALL_IN
 
         # MEDIUM
-        elif strength > 0.45:
+        elif strength > 0.50:
             if facing_big_bet:
                 my_contribution = self.pot_commitment
                 opp_contribution = aggressive[-1] if aggressive else 0
@@ -280,27 +196,24 @@ class MyPlayer(Player):
             if Move.CALL in valid_moves:
                 call_amount = aggressive[-1] - self.pot_commitment if aggressive else 0
                 stack_threshold = 0.25 if stack_ratio < 0.8 else 0.20
-                if call_amount < self.chips * stack_threshold:
+                if call_amount < self.chips * stack_threshold and strength > 0.52:
                     return Move.CALL
             return Move.FOLD
         # WEAK
         else:
-            if tendency == 'loose' and not facing_big_bet:
-                 if Move.BET in valid_moves:
-                    return (Move.BET, min(max_bet, 150))
-            if tendency == 'unknown' and not facing_big_bet:
-                 if Move.BET in valid_moves:
-                    return (Move.BET, min(max_bet, 150))
-            if stack_ratio < 0.7 and not facing_big_bet:
+            should_bluff = (tendency in ('loose', 'unknown') or stack_ratio < 0.7)
+            if should_bluff and not facing_big_bet:
                 if Move.BET in valid_moves:
-                    return (Move.BET, min(max_bet, 150))
+                    bluff_size = 200 if tendency == 'loose' else 150
+                    return (Move.BET, min(max_bet, bluff_size))
             if Move.CHECK in valid_moves:
                 return Move.CHECK
             return Move.FOLD
 
+
 def run_match(_: int) -> str:
     """Run a single match and return the winner's name."""
-    p1, p2 = MyPlayer(), ClonePlayer()
+    p1, p2 = MyPlayer(), RandomPlayer()
     game = Game(p1, p2, debug=False)
     return game.simulate_hands().name
 
